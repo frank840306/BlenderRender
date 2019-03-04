@@ -163,8 +163,8 @@ class BlenderRenderer(object):
         
 
     def renderAll(self, render_num):
-        render_num = self.doc_num * self.mdl_num * self.hdri_num * len(self.cameras) * render_num
-        print('[ RENDER ] Total render num = {}'.format(render_num))
+        total_num = self.doc_num * self.mdl_num * self.hdri_num * len(self.cameras) * render_num
+        print('[ RENDER ] Total render num = {}'.format(total_num))
         
         nonShadowList = []
         shadowList = []
@@ -175,33 +175,34 @@ class BlenderRenderer(object):
         total_cnt, doc_cnt = 0, 0
         for doc in self.getDocList():
             self.renderSettingDoc(doc)
-            mdl_cnt = 0
-            for mdl in self.getMdlList():
-                self.renderSettingMdl(mdl)
-                hdri_cnt = 0
-                for hdri in self.getHdriList():
-                    self.renderSettingHdri(hdri)
-                    cam_cnt = 0
-                    for cam in self.cameras:
-                        self.renderSettingCamera(cam)
-                        # self.renderSetting(doc, mdl, hdri, cfg)
-                        render_cnt = 0
-                        for idx in range(render_num):
-                            self.addRandomEffect()
+            hdri_cnt = 0
+            for hdri in self.getHdriList():
+                self.renderSettingHdri(hdri)
+                cam_cnt = 0
+                for cam in self.cameras:
+                    self.renderSettingCamera(cam)
+                    # self.renderSetting(doc, mdl, hdri, cfg)
+                    render_cnt = 0
+                    for idx in range(render_num):
+                        self.addRandomEffect()
+                        
+                        mdl_cnt = 0
+                        for mdl in self.getMdlList():
                             nonShadowImg = os.path.join(self.non_shadow_dir, 'D{}M{}H{}C{:02d}N{:05d}.png'.format(
                                 os.path.splitext(doc)[0], os.path.splitext(mdl)[0], os.path.splitext(hdri)[0], cam_cnt+1, render_cnt+1))
-                            # nonShadowList.append(self.renderNonShadowImg(nonShadowImg))
-                            
+                            nonShadowList.append(self.renderNonShadowImg(nonShadowImg))
+                            self.renderSettingMdl(mdl)
                             shadowImg = os.path.join(self.shadow_dir, 'D{}M{}H{}C{:02d}N{:05d}.png'.format(
                                 os.path.splitext(doc)[0], os.path.splitext(mdl)[0], os.path.splitext(hdri)[0], cam_cnt+1, render_cnt+1))
-                            # shadowList.append(self.renderShadowImg(shadowImg))
+                            shadowList.append(self.renderShadowImg(shadowImg))
+                            self.deleteMdl()
                             print('\t[ Progress ] Total: [ {} / {} ], document: [ {} / {} ], 3D model: [ {} / {} ], HDRI: [ {} / {} ], camera: [ {} / {} ], render: [ {} / {} ]'.format(
-                                total_cnt+1, render_num, doc_cnt+1, self.doc_num, mdl_cnt+1, self.mdl_num, hdri_cnt+1, self.hdri_num, cam_cnt+1, len(self.cameras), render_cnt+1, render_num))
-                            render_cnt += 1
+                                total_cnt+1, total_num, doc_cnt+1, self.doc_num, mdl_cnt+1, self.mdl_num, hdri_cnt+1, self.hdri_num, cam_cnt+1, len(self.cameras), render_cnt+1, render_num))
+                            mdl_cnt += 1
                             total_cnt += 1
-                        cam_cnt += 1
-                    hdri_cnt += 1
-                mdl_cnt += 1
+                        render_cnt += 1
+                    cam_cnt += 1
+                hdri_cnt += 1
             doc_cnt += 1
             print('[ TIMESTAMP ] {}'.format(datetime.datetime.now().strftime('%H:%M:%S')))
             
@@ -302,9 +303,15 @@ class BlenderRenderer(object):
         self.plane.data.uv_textures[0].data[0].image = bpy.data.images.load(os.path.join(self.doc_dir, doc))
         
     def renderSettingMdl(self, mdl):
-        # imported_obj = bpy.ops.import_scene.obj(filepath=os.path.join(self.mdl_dir, mdl))
-        # self.obj = bpy.context.selected_objects[0]
-        pass
+        imported_obj = bpy.ops.import_scene.obj(filepath=os.path.join(self.mdl_dir, mdl))
+        self.obj = bpy.context.selected_objects[0]
+        coord_x = random.uniform(self.cfg.OBJECT.LOCATION_MIN, self.cfg.OBJECT.LOCATION_MAX)
+        coord_y = random.uniform(self.cfg.OBJECT.LOCATION_MIN, self.cfg.OBJECT.LOCATION_MAX)
+        
+        rotate_z = random.uniform(self.cfg.OBJECT.ROTATION_MIN, self.cfg.OBJECT.ROTATION_MAX)
+        
+        self.obj.location = (coord_x, coord_y, self.cfg.OBJECT.LOCATION_Z)
+        self.obj.rotation_euler = (self.cfg.OBJECT.ROTATION_X, self.cfg.OBJECT.ROTATION_Y, rotate_z)
         
     def renderSettingHdri(self, hdri):
         # set hdri image
@@ -323,13 +330,14 @@ class BlenderRenderer(object):
         spot_strength = random.uniform(self.cfg.LIGHT.STRENGTH_MIN, self.cfg.LIGHT.STRENGTH_MAX)
         bpy.data.lamps['Spot'].node_tree.nodes['Emission'].inputs[1].default_value = spot_strength
 
-
         # random spotlight shadow softness
         spot_softness = random.uniform(self.cfg.LIGHT.SHADOW_SOFT_MIN, self.cfg.LIGHT.SHADOW_SOFT_MAX)
         bpy.data.lamps['Spot'].shadow_soft_size = spot_softness
 
-        # occluder location
-        # TODO
+    def deleteMdl(self):
+        bpy.ops.object.select_all(action='DESELECT')
+        self.obj.select = True
+        bpy.ops.object.delete()
 
     def renderShadowImg(self, img):
         bpy.ops.render.render()
