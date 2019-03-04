@@ -114,6 +114,9 @@ def get_cfg():
 
     __C.OBJECT.LOCATION_MIN = -1
     __C.OBJECT.LOCATION_MAX = 1
+    __C.OBJECT.LOCATION_Z_MIN = 14
+    __C.OBJECT.LOCATION_Z_MAX = 18
+
 
     __C.OBJECT.ROTATION_MIN = math.pi * 0 / 180
     __C.OBJECT.ROTATION_MAX = math.pi * 90 / 180
@@ -173,6 +176,7 @@ class BlenderRenderer(object):
         # choose 1 HDRI
         
         total_cnt, doc_cnt = 0, 0
+        print('[ TIMESTAMP ] {}'.format(datetime.datetime.now().strftime('%H:%M:%S')))
         for doc in self.getDocList():
             self.renderSettingDoc(doc)
             hdri_cnt = 0
@@ -307,10 +311,10 @@ class BlenderRenderer(object):
         self.obj = bpy.context.selected_objects[0]
         coord_x = random.uniform(self.cfg.OBJECT.LOCATION_MIN, self.cfg.OBJECT.LOCATION_MAX)
         coord_y = random.uniform(self.cfg.OBJECT.LOCATION_MIN, self.cfg.OBJECT.LOCATION_MAX)
-        
+        coord_z = random.uniform(self.cfg.OBJECT.LOCATION_Z_MIN, self.cfg.OBJECT.LOCATION_Z_MAX)
         rotate_z = random.uniform(self.cfg.OBJECT.ROTATION_MIN, self.cfg.OBJECT.ROTATION_MAX)
         
-        self.obj.location = (coord_x, coord_y, self.cfg.OBJECT.LOCATION_Z)
+        self.obj.location = (coord_x, coord_y, coord_z)
         self.obj.rotation_euler = (self.cfg.OBJECT.ROTATION_X, self.cfg.OBJECT.ROTATION_Y, rotate_z)
         
     def renderSettingHdri(self, hdri):
@@ -351,9 +355,9 @@ class BlenderRenderer(object):
     def setPath(self, root_dir):
         print('[ SETTING PATH ]')
         self.root_dir = root_dir
-        self.mdl_dir = os.path.join(self.root_dir, 'tmp_mdl')
-        self.doc_dir = os.path.join(self.root_dir, 'tmp_doc')
-        self.hdri_dir = os.path.join(self.root_dir, 'tmp_hdri')
+        self.mdl_dir = os.path.join(self.root_dir, 'mdl')
+        self.doc_dir = os.path.join(self.root_dir, 'doc')
+        self.hdri_dir = os.path.join(self.root_dir, 'hdri')
         self.out_dir = os.path.join(self.root_dir, 'out')
         self.shadow_dir = os.path.join(self.out_dir, 'shadow')
         self.non_shadow_dir = os.path.join(self.out_dir, 'non_shadow')
@@ -387,5 +391,5 @@ if __name__ == '__main__':
     args = get_args()
     cfg = get_cfg()
     br = BlenderRenderer(args.root_dir, cfg)
-    nonShadowList, shadowList = br.renderAll(render_num=1)
+    nonShadowList, shadowList = br.renderAll(render_num=20)
 
