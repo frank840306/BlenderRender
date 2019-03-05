@@ -1,20 +1,36 @@
 import bpy
 
 import os
+import sys
 import glob
+import json
 import math
 import random
 import datetime
 import argparse
+import numpy as np
 from easydict import EasyDict as edict
+from PIL import Image
+''' the script to automatively render batch of shadow and non-shadow paired images
 
+Example usage:
+    ./blender -b --python blenderRender.py 
+    ./blender -b --python /media/yslin/SSD_DATA/research/BlenderRender/src/blenderRenderer.py -- -r /media/yslin/SSD_DATA/research/BlenderRender -w WORKLOAD_0305_ASUS_PRO.json -g
+
+'''
 
 
 def get_args():
     parser = argparse.ArgumentParser()
-    parser.add_argument('--root_dir', type=str, default='/home/yunhsuan/Desktop/blender_synthetic', help='root directory')
-    # parser.add_argument('')
-    args = parser.parse_args()
+    parser.add_argument('-r', '--root_dir', type=str, default='/media/yslin/SSD_DATA/research/BlenderRender', help='root directory')
+    parser.add_argument('-w', '--workload', type=str, default='WORKLOAD_0305_ASUS_PRO.json', help='ex: WORKLOAD_0305_ASUS_PRO.json')
+    parser.add_argument('-n', '--render_num', type=int, default=2, help='rendering number')
+    parser.add_argument('-g', '--use_gpu', action='store_true', help='whether to use gpu or not')
+    if '--' not in sys.argv:
+        args = parser.parse_args()    
+    else:
+        argv = sys.argv[sys.argv.index('--') + 1:]
+        args, _ = parser.parse_known_args(argv)
     return args
 
 def get_cfg():
@@ -102,21 +118,19 @@ def get_cfg():
     __C.OBJECT = edict()
     __C.OBJECT.LOCATION_X = 0
     __C.OBJECT.LOCATION_Y = 0
-    __C.OBJECT.LOCATION_Z = 18
+    __C.OBJECT.LOCATION_Z = 15
 
-    __C.OBJECT.ROTATION_X = 0
+    __C.OBJECT.ROTATION_X = math.pi * 90 / 180
     __C.OBJECT.ROTATION_Y = 0
     __C.OBJECT.ROTATION_Z = 0
 
-    __C.OBJECT.SCALE_X = 1
-    __C.OBJECT.SCALE_Y = 3
-    __C.OBJECT.SCALE_Z = 0.2
+
+    # __C.OBJECT.SCALE_X = 1
+    # __C.OBJECT.SCALE_Y = 3
+    # __C.OBJECT.SCALE_Z = 0.2
 
     __C.OBJECT.LOCATION_MIN = -1
     __C.OBJECT.LOCATION_MAX = 1
-    __C.OBJECT.LOCATION_Z_MIN = 14
-    __C.OBJECT.LOCATION_Z_MAX = 18
-
 
     __C.OBJECT.ROTATION_MIN = math.pi * 0 / 180
     __C.OBJECT.ROTATION_MAX = math.pi * 90 / 180
@@ -124,7 +138,7 @@ def get_cfg():
 
     # the hdri
     __C.HDRI = edict()
-    __C.HDRI.STRENGTH_MIN = 0.1
+    __C.HDRI.STRENGTH_MIN = 0.01
     __C.HDRI.STRENGTH_MAX = 0.3
 
 
@@ -132,11 +146,11 @@ def get_cfg():
     __C.LIGHT = edict()
     __C.LIGHT.TYPE = 'SPOT'
     __C.LIGHT.ANGLE = math.pi * 45 / 180
-    __C.LIGHT.SHADOW_SOFT_MIN = 0.3 # 0.3 ~ 0.8
-    __C.LIGHT.SHADOW_SOFT_MAX = 0.8 # 0.3 ~ 0.8
+    __C.LIGHT.SHADOW_SOFT_MIN = 0.1 
+    __C.LIGHT.SHADOW_SOFT_MAX = 0.5 
 
     __C.LIGHT.STRENGTH_MIN = 3000 # 3000 ~ 20000
-    __C.LIGHT.STRENGTH_MAX = 20000 # 3000 ~ 20000
+    __C.LIGHT.STRENGTH_MAX = 10000 # 3000 ~ 20000
 
 
     __C.LIGHT.LOCATION_X = 0
@@ -146,23 +160,36 @@ def get_cfg():
     __C.LIGHT.ROTATION_X = 0
     __C.LIGHT.ROTATION_Y = 0 
     __C.LIGHT.ROTATION_Z = 0
-
+    __C.LIGHT.COLOR = ['#FFC58F', '#FFF1E0', '#FFFFFF', '#C9E2FF']
 
     return cfg
 
+def hexToRGBA(hex):
+    gamma = 2.2
+    hex = hex.lstrip('#')
+    lv = len(hex)
+    fin = list(int(hex[i:i + lv // 3], 16) for i in range(0, lv, lv // 3))
+    r = pow(fin[0] / 255, gamma)
+    g = pow(fin[1] / 255, gamma)
+    b = pow(fin[2] / 255, gamma)
+    fin.clear()
+    fin.append(r)
+    fin.append(g)
+    fin.append(b)
+    fin.append(1.0)
+    return tuple(fin)
+
 class BlenderRenderer(object):
     """docstring for BlenderRenderer"""
-    def __init__(self, root_dir, cfg):
+    def __init__(self, root_dir, workload, gpu, cfg):
         super(BlenderRenderer, self).__init__()
         self.setPath(root_dir)
-        self.doc_num = self.getDocNum()
-        self.mdl_num = self.getMdlNum()
-        self.hdri_num = self.getHdriNum()
-
+        self.setWorkload(workload)
+        
         self.cfg = cfg
 
         print('[ CONFIG ] # documents: {}, # 3d model: {}, # HDRI : {}'.format(self.doc_num, self.mdl_num, self.hdri_num))
-        self.initEnv()
+        self.initEnv(gpu)
         
 
     def renderAll(self, render_num):
@@ -177,10 +204,10 @@ class BlenderRenderer(object):
         
         total_cnt, doc_cnt = 0, 0
         print('[ TIMESTAMP ] {}'.format(datetime.datetime.now().strftime('%H:%M:%S')))
-        for doc in self.getDocList():
-            self.renderSettingDoc(doc)
+        for doc in self.doc_list:
+            # self.renderSettingDoc(doc)
             hdri_cnt = 0
-            for hdri in self.getHdriList():
+            for hdri in self.hdri_list:
                 self.renderSettingHdri(hdri)
                 cam_cnt = 0
                 for cam in self.cameras:
@@ -191,14 +218,28 @@ class BlenderRenderer(object):
                         self.addRandomEffect()
                         
                         mdl_cnt = 0
-                        for mdl in self.getMdlList():
-                            nonShadowImg = os.path.join(self.non_shadow_dir, 'D{}M{}H{}C{:02d}N{:05d}.png'.format(
-                                os.path.splitext(doc)[0], os.path.splitext(mdl)[0], os.path.splitext(hdri)[0], cam_cnt+1, render_cnt+1))
-                            nonShadowList.append(self.renderNonShadowImg(nonShadowImg))
+                        for mdl in self.mdl_list:
+                            img_name = 'D{}M{}H{}C{:02d}N{:05d}.png'.format(os.path.splitext(doc)[0], os.path.splitext(mdl)[0], os.path.splitext(hdri)[0], cam_cnt+1, render_cnt+1)
+                            # render background non-shadow
+                            self.renderSettingDoc('background.png')
+                            bgNonShadowImg = os.path.join(self.non_shadow_dir, 'bgNonShadow.png')
+                            self.renderImg(bgNonShadowImg)
+                            # render doc non-shadow
+                            self.renderSettingDoc(doc)
+                            nonShadowImg = os.path.join(self.non_shadow_dir, img_name)
+                            nonShadowList.append(self.renderImg(nonShadowImg))
                             self.renderSettingMdl(mdl)
-                            shadowImg = os.path.join(self.shadow_dir, 'D{}M{}H{}C{:02d}N{:05d}.png'.format(
-                                os.path.splitext(doc)[0], os.path.splitext(mdl)[0], os.path.splitext(hdri)[0], cam_cnt+1, render_cnt+1))
-                            shadowList.append(self.renderShadowImg(shadowImg))
+                            # render background shadow
+                            self.renderSettingDoc('background.png')
+                            bgShadowImg = os.path.join(self.shadow_dir, 'bgShadow.png')
+                            self.renderImg(bgShadowImg)
+                            # render doc shadow
+                            self.renderSettingDoc(doc)
+                            shadowImg = os.path.join(self.shadow_dir, img_name)
+                            shadowList.append(self.renderImg(shadowImg))
+                            
+                            maskImg = os.path.join(self.mask_dir, img_name)
+                            self.obtainMask(bgNonShadowImg, bgShadowImg, maskImg)
                             self.deleteMdl()
                             print('\t[ Progress ] Total: [ {} / {} ], document: [ {} / {} ], 3D model: [ {} / {} ], HDRI: [ {} / {} ], camera: [ {} / {} ], render: [ {} / {} ]'.format(
                                 total_cnt+1, total_num, doc_cnt+1, self.doc_num, mdl_cnt+1, self.mdl_num, hdri_cnt+1, self.hdri_num, cam_cnt+1, len(self.cameras), render_cnt+1, render_num))
@@ -213,13 +254,14 @@ class BlenderRenderer(object):
         print('[ RENDER ] Over')
         return nonShadowList, shadowList
 
-    def initEnv(self):
+    def initEnv(self, gpu):
         # delete all default object
         bpy.ops.object.select_all(action='SELECT')
         bpy.ops.object.delete()
 
         # set cycle render
-        bpy.context.scene.render.engine = 'CYCLES'        
+        bpy.context.scene.render.engine = 'CYCLES'
+                
         # create camera
         camera_data = bpy.data.cameras.new('Camera')
 
@@ -255,6 +297,8 @@ class BlenderRenderer(object):
         bpy.data.scenes['Scene'].render.resolution_y = self.cfg.CAMERA.RESOLUTION_Y
         bpy.data.scenes['Scene'].render.resolution_percentage = self.cfg.CAMERA.PERCENTAGE
         bpy.data.scenes['Scene'].cycles.samples = self.cfg.CAMERA.SAMPLE
+        
+        bpy.data.scenes['Scene'].cycles.device = 'GPU' if gpu else 'CPU'
 
         # create plane 
         bpy.ops.mesh.primitive_plane_add(
@@ -311,10 +355,10 @@ class BlenderRenderer(object):
         self.obj = bpy.context.selected_objects[0]
         coord_x = random.uniform(self.cfg.OBJECT.LOCATION_MIN, self.cfg.OBJECT.LOCATION_MAX)
         coord_y = random.uniform(self.cfg.OBJECT.LOCATION_MIN, self.cfg.OBJECT.LOCATION_MAX)
-        coord_z = random.uniform(self.cfg.OBJECT.LOCATION_Z_MIN, self.cfg.OBJECT.LOCATION_Z_MAX)
+        # coord_z = random.uniform(self.cfg.OBJECT.LOCATION_Z_MIN, self.cfg.OBJECT.LOCATION_Z_MAX)
         rotate_z = random.uniform(self.cfg.OBJECT.ROTATION_MIN, self.cfg.OBJECT.ROTATION_MAX)
         
-        self.obj.location = (coord_x, coord_y, coord_z)
+        self.obj.location = (coord_x, coord_y, self.cfg.OBJECT.LOCATION_Z)
         self.obj.rotation_euler = (self.cfg.OBJECT.ROTATION_X, self.cfg.OBJECT.ROTATION_Y, rotate_z)
         
     def renderSettingHdri(self, hdri):
@@ -331,7 +375,9 @@ class BlenderRenderer(object):
         self.bg.inputs[1].default_value = hdri_strength
 
         # random spotlight strength
+        spot_color = self.cfg.LIGHT.COLOR[random.choice(range(len(self.cfg.LIGHT.COLOR)))]
         spot_strength = random.uniform(self.cfg.LIGHT.STRENGTH_MIN, self.cfg.LIGHT.STRENGTH_MAX)
+        bpy.data.lamps['Spot'].node_tree.nodes['Emission'].inputs[0].default_value = hexToRGBA(spot_color)
         bpy.data.lamps['Spot'].node_tree.nodes['Emission'].inputs[1].default_value = spot_strength
 
         # random spotlight shadow softness
@@ -343,13 +389,24 @@ class BlenderRenderer(object):
         self.obj.select = True
         bpy.ops.object.delete()
 
-    def renderShadowImg(self, img):
+    def obtainMask(self, N_img, S_img, M_img):
+        N = np.array(Image.open(N_img).convert('L')).astype(np.float32)
+        S = np.array(Image.open(S_img).convert('L')).astype(np.float32)
+        
+        M = N - S
+        M[np.where(M < 0)] = 0
+        M = M * 255 / np.max(M)
+        result = Image.fromarray(M.astype(np.uint8))
+        result.save(M_img)
+        return
+
+    def renderImg(self, img):
         bpy.ops.render.render()
         bpy.data.images['Render Result'].save_render(img)
 
-    def renderNonShadowImg(self, img):
-        bpy.ops.render.render()
-        bpy.data.images['Render Result'].save_render(img)
+    # def renderNonShadowImg(self, img):
+    #     bpy.ops.render.render()
+    #     bpy.data.images['Render Result'].save_render(img)
 
 
     def setPath(self, root_dir):
@@ -358,38 +415,43 @@ class BlenderRenderer(object):
         self.mdl_dir = os.path.join(self.root_dir, 'mdl')
         self.doc_dir = os.path.join(self.root_dir, 'doc')
         self.hdri_dir = os.path.join(self.root_dir, 'hdri')
+        self.todo_dir = os.path.join(self.root_dir, 'todo')
         self.out_dir = os.path.join(self.root_dir, 'out')
+
         self.shadow_dir = os.path.join(self.out_dir, 'shadow')
         self.non_shadow_dir = os.path.join(self.out_dir, 'non_shadow')
+        self.mask_dir = os.path.join(self.out_dir, 'mask')
 
-        mkdir_list = [self.out_dir, self.shadow_dir, self.non_shadow_dir]
+        mkdir_list = [self.out_dir, self.shadow_dir, self.non_shadow_dir, self.mask_dir]
         for d in mkdir_list:
             if not os.path.exists(d):
                 os.makedirs(d)
 
-    def getDocList(self):
-        return sorted(os.listdir(self.doc_dir))
+    def setWorkload(self, workload=None):
+        print('[ SETTING WORKLOAD ]')
+        if workload and os.path.exists(os.path.join(self.todo_dir, workload)):
+            with open(os.path.join(self.todo_dir, workload), 'r') as fp:
+                settings = json.load(fp)
+            self.doc_list = settings['doc']
+            self.mdl_list = settings['mdl']
+            self.hdri_list = settings['hdri']
+        else:
+            self.doc_list = sorted(os.listdir(self.doc_dir))
+            self.mdl_list = sorted(os.listdir(self.mdl_dir))
+            self.hdri_list = sorted(os.listdir(self.hdri_dir))
+        print('\t[ DOC ]: {}'.format(', '.join(self.doc_list)))
+        print('\t[ MDL ]: {}'.format(', '.join(self.mdl_list)))
+        print('\t[ hdri ]: {}'.format(', '.join(self.hdri_list)))
+        self.doc_num = len(self.doc_list)
+        self.mdl_num = len(self.mdl_list)
+        self.hdri_num = len(self.hdri_list)
+        return
 
-    def getMdlList(self):
-        mdl_list = sorted(glob.glob(os.path.join(self.mdl_dir, '*.obj')))
-        mdl_list = [os.path.basename(m) for m in mdl_list]
-        return mdl_list
-
-    def getHdriList(self):
-        return sorted(os.listdir(self.hdri_dir))
-
-    def getDocNum(self):
-        return len(self.getDocList())
-
-    def getMdlNum(self):
-        return len(self.getMdlList())
-
-    def getHdriNum(self):
-        return len(self.getHdriList())
 
 if __name__ == '__main__':
     args = get_args()
     cfg = get_cfg()
-    br = BlenderRenderer(args.root_dir, cfg)
-    nonShadowList, shadowList = br.renderAll(render_num=20)
+    br = BlenderRenderer(args.root_dir, args.workload, args.use_gpu, cfg)
+    nonShadowList, shadowList = br.renderAll(render_num=args.render_num)
+
 
