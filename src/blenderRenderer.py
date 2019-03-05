@@ -206,7 +206,7 @@ class BlenderRenderer(object):
         # choose 1 HDRI
         
         total_cnt, doc_cnt = 0, 0
-        start time = datetime.datetime.now().strftime('%H:%M:%S')
+        start_time = datetime.datetime.now().strftime('%H:%M:%S')
         print('[ TIMESTAMP ] {}'.format(start_time))
         for doc in self.doc_list:
             # self.renderSettingDoc(doc)
