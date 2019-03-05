@@ -206,7 +206,8 @@ class BlenderRenderer(object):
         # choose 1 HDRI
         
         total_cnt, doc_cnt = 0, 0
-        print('[ TIMESTAMP ] {}'.format(datetime.datetime.now().strftime('%H:%M:%S')))
+        start time = datetime.datetime.now().strftime('%H:%M:%S')
+        print('[ TIMESTAMP ] {}'.format(start_time))
         for doc in self.doc_list:
             # self.renderSettingDoc(doc)
             hdri_cnt = 0
@@ -226,7 +227,7 @@ class BlenderRenderer(object):
                             img_name = 'D{}M{}H{}C{:02d}N{:05d}.png'.format(os.path.splitext(doc)[0], os.path.splitext(mdl)[0], os.path.splitext(hdri)[0], cam_cnt+1, render_cnt+1)
                             # render background non-shadow
                             self.renderSettingDoc('background.png')
-                            bgNonShadowImg = os.path.join(self.non_shadow_dir, 'bgNonShadow.png')
+                            bgNonShadowImg = os.path.join(self.non_shadow_dir, 'bgNonShadow_{}.png'.format(start_time))
                             self.renderImg(bgNonShadowImg)
                             # render doc non-shadow
                             self.renderSettingDoc(doc)
@@ -235,7 +236,7 @@ class BlenderRenderer(object):
                             self.renderSettingMdl(mdl)
                             # render background shadow
                             self.renderSettingDoc('background.png')
-                            bgShadowImg = os.path.join(self.shadow_dir, 'bgShadow.png')
+                            bgShadowImg = os.path.join(self.shadow_dir, 'bgShadow_{}.png'.format(start_time))
                             self.renderImg(bgShadowImg)
                             # render doc shadow
                             self.renderSettingDoc(doc)
