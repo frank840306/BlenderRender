@@ -19,7 +19,11 @@ Example usage:
     ./blender -b --python /media/yslin/SSD_DATA/research/BlenderRender/src/blenderRenderer.py -- -r /media/yslin/SSD_DATA/research/BlenderRender -w WORKLOAD_0305_ASUS_PRO.json -g
     # csie server
     ./blender -b --python /nfs/inm_master/06/r06944059/BlenderRender/src/blenderRenderer.py -- -r /nfs/inm_master/06/r06944059/BlenderRender -w WORKLOAD_0305_CSIE10.json
+    # cml server
+    CUDA_VISIBLE_DEVICES=0 ./blender -b --python /auto/master06/frank840306/research/BlenderRender/src/blenderRenderer.py -- -r /auto/master06/frank840306/research/BlenderRender -w WORKLOAD_0305_CML26_GPU0.json
     
+
+
 '''
 
 
