@@ -218,10 +218,11 @@ class BlenderRenderer(object):
                     # self.renderSetting(doc, mdl, hdri, cfg)
                     render_cnt = 0
                     for idx in range(render_num):
-                        self.addRandomEffect()
+                        
                         
                         mdl_cnt = 0
                         for mdl in self.mdl_list:
+                            self.addRandomEffect()
                             img_name = 'D{}M{}H{}C{:02d}N{:05d}.png'.format(os.path.splitext(doc)[0], os.path.splitext(mdl)[0], os.path.splitext(hdri)[0], cam_cnt+1, render_cnt+1)
                             # render background non-shadow
                             self.renderSettingDoc('background.png')
