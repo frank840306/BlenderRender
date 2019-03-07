@@ -33,6 +33,7 @@ def get_args():
     parser.add_argument('-w', '--workload', type=str, default='WORKLOAD_0305_ASUS_PRO.json', help='ex: WORKLOAD_0305_ASUS_PRO.json')
     parser.add_argument('-n', '--render_num', type=int, default=2, help='rendering number')
     parser.add_argument('-g', '--use_gpu', action='store_true', help='whether to use gpu or not')
+    parser.add_argument('--ratio_range', type=float, nargs='+', default=[0.01, 0.9], help='the ratio range of mask to keep the pair')
     if '--' not in sys.argv:
         args = parser.parse_args()    
     else:
@@ -136,8 +137,8 @@ def get_cfg():
     # __C.OBJECT.SCALE_Y = 3
     # __C.OBJECT.SCALE_Z = 0.2
 
-    __C.OBJECT.LOCATION_MIN = -1
-    __C.OBJECT.LOCATION_MAX = 1
+    __C.OBJECT.LOCATION_MIN = -0.8
+    __C.OBJECT.LOCATION_MAX = 0.8
 
     __C.OBJECT.ROTATION_MIN = math.pi * 0 / 180
     __C.OBJECT.ROTATION_MAX = math.pi * 90 / 180
@@ -199,7 +200,7 @@ class BlenderRenderer(object):
         self.initEnv(gpu)
         
 
-    def renderAll(self, render_num):
+    def renderAll(self, render_num, ratio_range):
         total_num = self.doc_num * self.mdl_num * self.hdri_num * len(self.cameras) * render_num
         print('[ RENDER ] Total render num = {}'.format(total_num))
         
@@ -211,6 +212,9 @@ class BlenderRenderer(object):
         
         total_cnt, doc_cnt = 0, 0
         start_time = datetime.datetime.now().strftime('%H:%M:%S')
+        bgNonShadowImg = os.path.join(self.non_shadow_dir, 'bgNonShadow_{}.png'.format(start_time))
+        bgShadowImg = os.path.join(self.shadow_dir, 'bgShadow_{}.png'.format(start_time))
+
         print('[ TIMESTAMP ] {}'.format(start_time))
         for doc in self.doc_list:
             # self.renderSettingDoc(doc)
@@ -229,26 +233,30 @@ class BlenderRenderer(object):
                         for mdl in self.mdl_list:
                             self.addRandomEffect()
                             img_name = 'D{}M{}H{}C{:02d}N{:05d}.png'.format(os.path.splitext(doc)[0], os.path.splitext(mdl)[0], os.path.splitext(hdri)[0], cam_cnt+1, render_cnt+1)
+                            nonShadowImg = os.path.join(self.non_shadow_dir, img_name)
+                            shadowImg = os.path.join(self.shadow_dir, img_name)
+                            maskImg = os.path.join(self.mask_dir, img_name)
+                            
+                            
                             # render background non-shadow
                             self.renderSettingDoc('background.png')
-                            bgNonShadowImg = os.path.join(self.non_shadow_dir, 'bgNonShadow_{}.png'.format(start_time))
                             self.renderImg(bgNonShadowImg)
                             # render doc non-shadow
                             self.renderSettingDoc(doc)
-                            nonShadowImg = os.path.join(self.non_shadow_dir, img_name)
                             nonShadowList.append(self.renderImg(nonShadowImg))
+                            
                             self.renderSettingMdl(mdl)
                             # render background shadow
                             self.renderSettingDoc('background.png')
-                            bgShadowImg = os.path.join(self.shadow_dir, 'bgShadow_{}.png'.format(start_time))
                             self.renderImg(bgShadowImg)
                             # render doc shadow
                             self.renderSettingDoc(doc)
-                            shadowImg = os.path.join(self.shadow_dir, img_name)
                             shadowList.append(self.renderImg(shadowImg))
                             
-                            maskImg = os.path.join(self.mask_dir, img_name)
-                            self.obtainMask(bgNonShadowImg, bgShadowImg, maskImg)
+                            if not self.obtainMask(bgNonShadowImg, bgShadowImg, maskImg, ratio_range):
+                                os.remove(shadowImg)
+                                os.remove(nonShadowImg)
+                            
                             self.deleteMdl()
                             print('\t[ Progress ] Total: [ {} / {} ], document: [ {} / {} ], 3D model: [ {} / {} ], HDRI: [ {} / {} ], camera: [ {} / {} ], render: [ {} / {} ]'.format(
                                 total_cnt+1, total_num, doc_cnt+1, self.doc_num, mdl_cnt+1, self.mdl_num, hdri_cnt+1, self.hdri_num, cam_cnt+1, len(self.cameras), render_cnt+1, render_num))
@@ -259,11 +267,14 @@ class BlenderRenderer(object):
                 hdri_cnt += 1
             doc_cnt += 1
             print('[ TIMESTAMP ] {}'.format(datetime.datetime.now().strftime('%H:%M:%S')))
-            
+        
+        os.remove(bgNonShadowImg)
+        os.remove(bgShadowImg)
         print('[ RENDER ] Over')
         return nonShadowList, shadowList
 
     def initEnv(self, gpu):
+        random.seed(840306)
         # delete all default object
         bpy.ops.object.select_all(action='SELECT')
         bpy.ops.object.delete()
@@ -308,7 +319,11 @@ class BlenderRenderer(object):
         bpy.data.scenes['Scene'].cycles.samples = self.cfg.CAMERA.SAMPLE
         
         bpy.data.scenes['Scene'].cycles.device = 'GPU' if gpu else 'CPU'
-
+        
+        bpy.data.scenes['Scene'].render.layers[0].cycles.use_denoising = True
+        # bpy.data.scenes['Scene'].render.layers[0].cycles.denoising_radius = 4
+        # bpy.data.scenes['Scene'].render.layers[0].cycles.denoising_relative_pca = True
+        
         # create plane 
         bpy.ops.mesh.primitive_plane_add(
             location=(self.cfg.PLANE.LOCATION_X, self.cfg.PLANE.LOCATION_Y, self.cfg.PLANE.LOCATION_Z),
@@ -398,16 +413,32 @@ class BlenderRenderer(object):
         self.obj.select = True
         bpy.ops.object.delete()
 
-    def obtainMask(self, N_img, S_img, M_img):
+    def obtainMask(self, N_img, S_img, M_img, ratio_range):
         N = np.array(Image.open(N_img).convert('L')).astype(np.float32)
         S = np.array(Image.open(S_img).convert('L')).astype(np.float32)
         
         M = N - S
         M[np.where(M < 0)] = 0
         M = M * 255 / np.max(M)
-        result = Image.fromarray(M.astype(np.uint8))
-        result.save(M_img)
-        return
+        M[np.where(M < 20)] = 0
+        
+        ratio = self.maskRatio(M)
+
+        if ratio < ratio_range[0] or ratio > ratio_range[1]:
+            print('[ PRUNE ] {} shadow ratio = {}'.format(os.path.basename(N_img), ratio))
+            # os.remove(N_img)
+            # os.remove(S_img)
+            return False
+        else:
+            result = Image.fromarray(M.astype(np.uint8))
+            result.save(M_img)
+            return True
+
+    def maskRatio(self, M):
+        binary = np.zeros((self.cfg.CAMERA.RESOLUTION_Y, self.cfg.CAMERA.RESOLUTION_X), np.uint8)
+        binary[np.where(M > 0)] = 1
+        ratio = np.sum(binary) / (self.cfg.CAMERA.RESOLUTION_X * self.cfg.CAMERA.RESOLUTION_Y)
+        return ratio
 
     def renderImg(self, img):
         bpy.ops.render.render()
@@ -461,6 +492,6 @@ if __name__ == '__main__':
     args = get_args()
     cfg = get_cfg()
     br = BlenderRenderer(args.root_dir, args.workload, args.use_gpu, cfg)
-    nonShadowList, shadowList = br.renderAll(render_num=args.render_num)
+    nonShadowList, shadowList = br.renderAll(render_num=args.render_num, ratio_range=args.ratio_range)
 
 
