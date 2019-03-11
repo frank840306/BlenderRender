@@ -320,7 +320,7 @@ class BlenderRenderer(object):
         
         bpy.data.scenes['Scene'].cycles.device = 'GPU' if gpu else 'CPU'
         
-        bpy.data.scenes['Scene'].render.layers[0].cycles.use_denoising = True
+        # bpy.data.scenes['Scene'].render.layers[0].cycles.use_denoising = True
         # bpy.data.scenes['Scene'].render.layers[0].cycles.denoising_radius = 4
         # bpy.data.scenes['Scene'].render.layers[0].cycles.denoising_relative_pca = True
         
