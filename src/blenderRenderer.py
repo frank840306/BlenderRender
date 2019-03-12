@@ -263,7 +263,6 @@ class BlenderRenderer(object):
                             total_cnt += 1
                         render_cnt += 1
                     cam_cnt += 1
-                    return [], []
                 hdri_cnt += 1
             doc_cnt += 1
             print('[ TIMESTAMP ] {}'.format(datetime.datetime.now().strftime('%H:%M:%S')))
