@@ -31,7 +31,7 @@ def get_args():
     parser = argparse.ArgumentParser()
     parser.add_argument('-r', '--root_dir', type=str, default='/media/yslin/SSD_DATA/research/BlenderRender', help='root directory')
     parser.add_argument('-w', '--workload', type=str, default='WORKLOAD_0305_ASUS_PRO.json', help='ex: WORKLOAD_0305_ASUS_PRO.json')
-    parser.add_argument('-n', '--render_num', type=int, default=2, help='rendering number')
+    parser.add_argument('-n', '--render_num', type=int, default=1, help='rendering number')
     parser.add_argument('-g', '--use_gpu', action='store_true', help='whether to use gpu or not')
     parser.add_argument('--ratio_range', type=float, nargs='+', default=[0.01, 0.9], help='the ratio range of mask to keep the pair')
     if '--' not in sys.argv:
@@ -212,8 +212,8 @@ class BlenderRenderer(object):
         
         total_cnt, doc_cnt = 0, 0
         start_time = datetime.datetime.now().strftime('%H:%M:%S')
-        bgNonShadowImg = os.path.join(self.non_shadow_dir, 'bgNonShadow_{}.png'.format(start_time))
-        bgShadowImg = os.path.join(self.shadow_dir, 'bgShadow_{}.png'.format(start_time))
+        # bgNonShadowImg = os.path.join(self.non_shadow_dir, 'bgNonShadow_{}.png'.format(start_time))
+        # bgShadowImg = os.path.join(self.shadow_dir, 'bgShadow_{}.png'.format(start_time))
 
         print('[ TIMESTAMP ] {}'.format(start_time))
         for doc in self.doc_list:
@@ -239,24 +239,23 @@ class BlenderRenderer(object):
                             
                             
                             # render background non-shadow
-                            self.renderSettingDoc('background.png')
-                            self.renderImg(bgNonShadowImg)
+                            # self.renderSettingDoc('background.png')
+                            # self.renderImg(bgNonShadowImg)
                             # render doc non-shadow
                             self.renderSettingDoc(doc)
                             nonShadowList.append(self.renderImg(nonShadowImg))
                             
                             self.renderSettingMdl(mdl)
                             # render background shadow
-                            self.renderSettingDoc('background.png')
-                            self.renderImg(bgShadowImg)
+                            # self.renderSettingDoc('background.png')
+                            # self.renderImg(bgShadowImg)
                             # render doc shadow
                             self.renderSettingDoc(doc)
                             shadowList.append(self.renderImg(shadowImg))
                             
-                            if not self.obtainMask(bgNonShadowImg, bgShadowImg, maskImg, ratio_range):
+                            if not self.obtainMask(nonShadowImg, shadowImg, maskImg, ratio_range):
                                 os.remove(shadowImg)
                                 os.remove(nonShadowImg)
-                            
                             self.deleteMdl()
                             print('\t[ Progress ] Total: [ {} / {} ], document: [ {} / {} ], 3D model: [ {} / {} ], HDRI: [ {} / {} ], camera: [ {} / {} ], render: [ {} / {} ]'.format(
                                 total_cnt+1, total_num, doc_cnt+1, self.doc_num, mdl_cnt+1, self.mdl_num, hdri_cnt+1, self.hdri_num, cam_cnt+1, len(self.cameras), render_cnt+1, render_num))
@@ -264,6 +263,7 @@ class BlenderRenderer(object):
                             total_cnt += 1
                         render_cnt += 1
                     cam_cnt += 1
+                    return [], []
                 hdri_cnt += 1
             doc_cnt += 1
             print('[ TIMESTAMP ] {}'.format(datetime.datetime.now().strftime('%H:%M:%S')))
@@ -316,11 +316,13 @@ class BlenderRenderer(object):
         bpy.data.scenes['Scene'].render.resolution_x = self.cfg.CAMERA.RESOLUTION_X
         bpy.data.scenes['Scene'].render.resolution_y = self.cfg.CAMERA.RESOLUTION_Y
         bpy.data.scenes['Scene'].render.resolution_percentage = self.cfg.CAMERA.PERCENTAGE
+        bpy.data.scenes['Scene'].render.dither_intensity = self.dithering
         bpy.data.scenes['Scene'].cycles.samples = self.cfg.CAMERA.SAMPLE
         
         bpy.data.scenes['Scene'].cycles.device = 'GPU' if gpu else 'CPU'
         
-        # bpy.data.scenes['Scene'].render.layers[0].cycles.use_denoising = True
+        bpy.data.scenes['Scene'].render.layers[0].cycles.use_denoising = self.denoising
+
         # bpy.data.scenes['Scene'].render.layers[0].cycles.denoising_radius = 4
         # bpy.data.scenes['Scene'].render.layers[0].cycles.denoising_relative_pca = True
         
@@ -419,8 +421,8 @@ class BlenderRenderer(object):
         
         M = N - S
         M[np.where(M < 0)] = 0
-        M = M * 255 / np.max(M)
-        M[np.where(M < 20)] = 0
+        # M = M * 255 / np.max(M)
+        # M[np.where(M < 20)] = 0
         
         ratio = self.maskRatio(M)
 
@@ -457,12 +459,14 @@ class BlenderRenderer(object):
         self.hdri_dir = os.path.join(self.root_dir, 'hdri')
         self.todo_dir = os.path.join(self.root_dir, 'todo')
         self.out_dir = os.path.join(self.root_dir, 'out')
+        
+    def setOutputPath(self, dataset_dir):
+        self.dataset_dir = dataset_dir
+        self.shadow_dir = os.path.join(self.dataset_dir, 'shadow')
+        self.non_shadow_dir = os.path.join(self.dataset_dir, 'non_shadow')
+        self.mask_dir = os.path.join(self.dataset_dir, 'mask')
 
-        self.shadow_dir = os.path.join(self.out_dir, 'shadow')
-        self.non_shadow_dir = os.path.join(self.out_dir, 'non_shadow')
-        self.mask_dir = os.path.join(self.out_dir, 'mask')
-
-        mkdir_list = [self.out_dir, self.shadow_dir, self.non_shadow_dir, self.mask_dir]
+        mkdir_list = [self.out_dir, self.dataset_dir, self.shadow_dir, self.non_shadow_dir, self.mask_dir]
         for d in mkdir_list:
             if not os.path.exists(d):
                 os.makedirs(d)
@@ -475,13 +479,22 @@ class BlenderRenderer(object):
             self.doc_list = settings['doc']
             self.mdl_list = settings['mdl']
             self.hdri_list = settings['hdri']
+            self.denoising = settings['param']['denoising']
+            self.dithering = settings['param']['dithering']
+            self.setOutputPath(os.path.join(self.out_dir, settings['param']['dataset']))
         else:
             self.doc_list = sorted(os.listdir(self.doc_dir))
             self.mdl_list = sorted(os.listdir(self.mdl_dir))
             self.hdri_list = sorted(os.listdir(self.hdri_dir))
+            self.denoising = True
+            self.dithering = 1
+            self.setOutputPath(os.path.join(self.out_dir, 'Blender'))
         print('\t[ DOC ]: {}'.format(', '.join(self.doc_list)))
         print('\t[ MDL ]: {}'.format(', '.join(self.mdl_list)))
         print('\t[ hdri ]: {}'.format(', '.join(self.hdri_list)))
+        print('\t[ DENOISING ]: {}'.format(self.denoising))
+        print('\t[ DITHERING ]: {}'.format(self.dithering))
+        print('\t[ DATASET ]: {}'.format(self.dataset_dir))
         self.doc_num = len(self.doc_list)
         self.mdl_num = len(self.mdl_list)
         self.hdri_num = len(self.hdri_list)
