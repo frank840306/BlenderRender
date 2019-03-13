@@ -1,0 +1,36 @@
+{
+    "date": "2019.03.13",
+    "doc": [
+        "0106.png",
+        "0107.png",
+        "0108.png",
+        "0109.png",
+        "0110.png"
+    ],
+    "hdri": [
+        "001.hdr",
+        "002.hdr",
+        "003.hdr",
+        "004.hdr",
+        "005.hdr",
+        "006.hdr",
+        "007.hdr",
+        "008.hdr",
+        "009.hdr",
+        "010.hdr"
+    ],
+    "mdl": [
+        "001.obj",
+        "002.obj",
+        "003.obj",
+        "004.obj",
+        "005.obj",
+        "006.obj",
+        "007.obj"
+    ],
+    "param": {
+        "dataset": "Blender40_residual",
+        "denoising": true,
+        "dithering": 1
+    }
+}

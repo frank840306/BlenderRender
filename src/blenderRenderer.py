@@ -20,7 +20,7 @@ Example usage:
     # csie server
     ./blender -b --python /nfs/inm_master/06/r06944059/BlenderRender/src/blenderRenderer.py -- -r /nfs/inm_master/06/r06944059/BlenderRender -w WORKLOAD_0305_CSIE10.json
     # cml server
-    CUDA_VISIBLE_DEVICES=0 ./blender -b --python /auto/master06/frank840306/research/BlenderRender/src/blenderRenderer.py -- -r /auto/master06/frank840306/research/BlenderRender -w WORKLOAD_0305_CML26_GPU0.json
+    CUDA_VISIBLE_DEVICES=0 ./blender -b --python /tmp2/frank840306/research/BlenderRender/src/blenderRenderer.py -- -r /tmp2/frank840306/research/BlenderRender -w WORKLOAD_0305_CML26.json
     
 
 
@@ -267,8 +267,8 @@ class BlenderRenderer(object):
             doc_cnt += 1
             print('[ TIMESTAMP ] {}'.format(datetime.datetime.now().strftime('%H:%M:%S')))
         
-        os.remove(bgNonShadowImg)
-        os.remove(bgShadowImg)
+        # os.remove(bgNonShadowImg)
+        # os.remove(bgShadowImg)
         print('[ RENDER ] Over')
         return nonShadowList, shadowList
 
