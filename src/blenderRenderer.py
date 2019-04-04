@@ -310,7 +310,8 @@ class BlenderRenderer(object):
         bpy.data.scenes[0].objects.link(camera5)
         
         bpy.data.scenes[0].update()
-        self.cameras = [camera1, camera2, camera3, camera4, camera5]
+        # self.cameras = [camera1, camera2, camera3, camera4, camera5]
+        self.cameras = [camera1]
         # init render parameter
         bpy.data.scenes['Scene'].render.resolution_x = self.cfg.CAMERA.RESOLUTION_X
         bpy.data.scenes['Scene'].render.resolution_y = self.cfg.CAMERA.RESOLUTION_Y
