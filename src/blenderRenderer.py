@@ -48,11 +48,11 @@ def get_cfg():
 
     # the camera
     __C.CAMERA = edict()
-    __C.CAMERA.RESOLUTION_X = 900
-    __C.CAMERA.RESOLUTION_Y = 1200
-    __C.CAMERA.PERCENTAGE = 50 # 100
+    __C.CAMERA.RESOLUTION_X = 450
+    __C.CAMERA.RESOLUTION_Y = 600
+    __C.CAMERA.PERCENTAGE = 100 # 100
 
-    __C.CAMERA.SAMPLE = 256
+    __C.CAMERA.SAMPLE = 512
 
     # the camera 1
     __C.CAMERA1 = edict()
@@ -155,8 +155,8 @@ def get_cfg():
     __C.LIGHT.TYPE = 'SPOT'
     __C.LIGHT.ANGLE = math.pi * 45 / 180
     __C.LIGHT.SHADOW_SOFT_MIN = 0.1 
-    __C.LIGHT.SHADOW_SOFT_MAX = 0.5 
-
+    __C.LIGHT.SHADOW_SOFT_MAX = 0.5
+    
     __C.LIGHT.STRENGTH_MIN = 3000 # 3000 ~ 20000
     __C.LIGHT.STRENGTH_MAX = 10000 # 3000 ~ 20000
 
@@ -164,6 +164,9 @@ def get_cfg():
     __C.LIGHT.LOCATION_X = 0
     __C.LIGHT.LOCATION_Y = 0
     __C.LIGHT.LOCATION_Z = 22
+
+    __C.LIGHT.LOCATION_MIN = -0.5
+    __C.LIGHT.LOCATION_MAX = 0.5
 
     __C.LIGHT.ROTATION_X = 0
     __C.LIGHT.ROTATION_Y = 0 
@@ -201,7 +204,7 @@ class BlenderRenderer(object):
         
 
     def renderAll(self, render_num, ratio_range):
-        total_num = self.doc_num * self.mdl_num * self.hdri_num * len(self.cameras) * render_num
+        total_num = self.doc_num * self.mdl_num * len(self.cameras) * render_num
         print('[ RENDER ] Total render num = {}'.format(total_num))
         
         nonShadowList = []
@@ -212,63 +215,62 @@ class BlenderRenderer(object):
         
         total_cnt, doc_cnt = 0, 0
         start_time = datetime.datetime.now().strftime('%H:%M:%S')
-        # bgNonShadowImg = os.path.join(self.non_shadow_dir, 'bgNonShadow_{}.png'.format(start_time))
-        # bgShadowImg = os.path.join(self.shadow_dir, 'bgShadow_{}.png'.format(start_time))
+        bgNonShadowImg = os.path.join(self.non_shadow_dir, 'bgNonShadow_{}.png'.format(start_time))
+        bgShadowImg = os.path.join(self.shadow_dir, 'bgShadow_{}.png'.format(start_time))
 
         print('[ TIMESTAMP ] {}'.format(start_time))
         for doc in self.doc_list:
-            # self.renderSettingDoc(doc)
-            hdri_cnt = 0
-            for hdri in self.hdri_list:
-                self.renderSettingHdri(hdri)
-                cam_cnt = 0
-                for cam in self.cameras:
-                    self.renderSettingCamera(cam)
-                    # self.renderSetting(doc, mdl, hdri, cfg)
-                    render_cnt = 0
-                    for idx in range(render_num):
+            
+            cam_cnt = 0
+            for cam in self.cameras:
+                self.renderSettingCamera(cam)
+                render_cnt = 0
+                for idx in range(render_num):
+                    
+                    
+                    mdl_cnt = 0
+                    for mdl in self.mdl_list:
+                        # add hdri
+                        hdri = random.choice(self.hdri_list)
+                        self.renderSettingHdri(hdri)
+
+                        self.addRandomEffect()
+                        img_name = 'D{}M{}C{:02d}N{:05d}.png'.format(os.path.splitext(doc)[0], os.path.splitext(mdl)[0], cam_cnt+1, render_cnt+1)
+                        nonShadowImg = os.path.join(self.non_shadow_dir, img_name)
+                        shadowImg = os.path.join(self.shadow_dir, img_name)
+                        maskImg = os.path.join(self.mask_dir, img_name)
                         
                         
-                        mdl_cnt = 0
-                        for mdl in self.mdl_list:
-                            self.addRandomEffect()
-                            img_name = 'D{}M{}H{}C{:02d}N{:05d}.png'.format(os.path.splitext(doc)[0], os.path.splitext(mdl)[0], os.path.splitext(hdri)[0], cam_cnt+1, render_cnt+1)
-                            nonShadowImg = os.path.join(self.non_shadow_dir, img_name)
-                            shadowImg = os.path.join(self.shadow_dir, img_name)
-                            maskImg = os.path.join(self.mask_dir, img_name)
-                            
-                            
-                            # render background non-shadow
-                            # self.renderSettingDoc('background.png')
-                            # self.renderImg(bgNonShadowImg)
-                            # render doc non-shadow
-                            self.renderSettingDoc(doc)
-                            nonShadowList.append(self.renderImg(nonShadowImg))
-                            
-                            self.renderSettingMdl(mdl)
-                            # render background shadow
-                            # self.renderSettingDoc('background.png')
-                            # self.renderImg(bgShadowImg)
-                            # render doc shadow
-                            self.renderSettingDoc(doc)
-                            shadowList.append(self.renderImg(shadowImg))
-                            
-                            if not self.obtainMask(nonShadowImg, shadowImg, maskImg, ratio_range):
-                                os.remove(shadowImg)
-                                os.remove(nonShadowImg)
-                            self.deleteMdl()
-                            print('\t[ Progress ] Total: [ {} / {} ], document: [ {} / {} ], 3D model: [ {} / {} ], HDRI: [ {} / {} ], camera: [ {} / {} ], render: [ {} / {} ]'.format(
-                                total_cnt+1, total_num, doc_cnt+1, self.doc_num, mdl_cnt+1, self.mdl_num, hdri_cnt+1, self.hdri_num, cam_cnt+1, len(self.cameras), render_cnt+1, render_num))
-                            mdl_cnt += 1
-                            total_cnt += 1
-                        render_cnt += 1
-                    cam_cnt += 1
-                hdri_cnt += 1
+                        # render background non-shadow
+                        self.renderSettingDoc('background.png')
+                        self.renderImg(bgNonShadowImg)
+                        # render doc non-shadow
+                        self.renderSettingDoc(doc)
+                        nonShadowList.append(self.renderImg(nonShadowImg))
+                        
+                        self.renderSettingMdl(mdl)
+                        # render background shadow
+                        self.renderSettingDoc('background.png')
+                        self.renderImg(bgShadowImg)
+                        # render doc shadow
+                        self.renderSettingDoc(doc)
+                        shadowList.append(self.renderImg(shadowImg))
+                        
+                        if not self.obtainMask(bgNonShadowImg, bgShadowImg, maskImg, ratio_range):
+                            os.remove(shadowImg)
+                            os.remove(nonShadowImg)
+                        self.deleteMdl()
+                        print('\t[ Progress ] Total: [ {} / {} ], document: [ {} / {} ], 3D model: [ {} / {} ], camera: [ {} / {} ], render: [ {} / {} ]'.format(
+                            total_cnt+1, total_num, doc_cnt+1, self.doc_num, mdl_cnt+1, self.mdl_num, cam_cnt+1, len(self.cameras), render_cnt+1, render_num))
+                        mdl_cnt += 1
+                        total_cnt += 1
+                    render_cnt += 1
+                cam_cnt += 1
             doc_cnt += 1
             print('[ TIMESTAMP ] {}'.format(datetime.datetime.now().strftime('%H:%M:%S')))
         
-        # os.remove(bgNonShadowImg)
-        # os.remove(bgShadowImg)
+        os.remove(bgNonShadowImg)
+        os.remove(bgShadowImg)
         print('[ RENDER ] Over')
         return nonShadowList, shadowList
 
@@ -361,6 +363,7 @@ class BlenderRenderer(object):
         self.env = world.node_tree.nodes.new(type='ShaderNodeTexEnvironment')
         world.node_tree.links.new(self.env.outputs['Color'], self.bg.inputs['Color'])
         # create light source
+        
         bpy.ops.object.lamp_add(
             type=self.cfg.LIGHT.TYPE,
             location=(self.cfg.LIGHT.LOCATION_X, self.cfg.LIGHT.LOCATION_Y, self.cfg.LIGHT.LOCATION_Z)
@@ -399,12 +402,21 @@ class BlenderRenderer(object):
         # random hdri strength
         hdri_strength = random.uniform(self.cfg.HDRI.STRENGTH_MIN, self.cfg.HDRI.STRENGTH_MAX)
         self.bg.inputs[1].default_value = hdri_strength
-
+        # self.bg.inputs[1].default_value = self.cfg.HDRI.STRENGTH_MIN
+        
+        # random spotlight location
+        spot_location_x = random.uniform(self.cfg.LIGHT.LOCATION_MIN, self.cfg.LIGHT.LOCATION_MAX)
+        spot_location_y = random.uniform(self.cfg.LIGHT.LOCATION_MIN, self.cfg.LIGHT.LOCATION_MAX)
+        bpy.data.objects['Spot'].location[0] = spot_location_x
+        bpy.data.objects['Spot'].location[1] = spot_location_y
+        
         # random spotlight strength
         spot_color = self.cfg.LIGHT.COLOR[random.choice(range(len(self.cfg.LIGHT.COLOR)))]
         spot_strength = random.uniform(self.cfg.LIGHT.STRENGTH_MIN, self.cfg.LIGHT.STRENGTH_MAX)
         bpy.data.lamps['Spot'].node_tree.nodes['Emission'].inputs[0].default_value = hexToRGBA(spot_color)
         bpy.data.lamps['Spot'].node_tree.nodes['Emission'].inputs[1].default_value = spot_strength
+        # bpy.data.lamps['Spot'].node_tree.nodes['Emission'].inputs[1].default_value = self.cfg.LIGHT.STRENGTH_MIN
+        
 
         # random spotlight shadow softness
         spot_softness = random.uniform(self.cfg.LIGHT.SHADOW_SOFT_MIN, self.cfg.LIGHT.SHADOW_SOFT_MAX)
@@ -420,8 +432,27 @@ class BlenderRenderer(object):
         S = np.array(Image.open(S_img).convert('L')).astype(np.float32)
         
         M = N - S
+        # print('M: ', M.shape)
         M[np.where(M < 0)] = 0
-        # M = M * 255 / np.max(M)
+
+        if np.percentile(M, 99) < 20:
+            print('[ PRUNE ] {} shallow shadow'.format(os.path.basename(N_img)))
+            return False
+
+        tmp_M = M.copy()[np.nonzero(M)]
+        # tmp_M[np.nonzero(tmp_M)]
+        # print('tmp_M: ', tmp_M)
+        # print(tmp_M.shape)
+        
+
+        max_val = np.percentile(tmp_M, 80)
+        min_val = np.percentile(tmp_M, 5)
+
+        M[np.where(M > max_val)] = max_val
+        M[np.where(M < min_val)] = min_val
+        # print(np.max(M), max_val, min_val)
+        M = 255 * (M - min_val) / (max_val - min_val)
+        # M = M * 255 / max_val
         # M[np.where(M < 20)] = 0
         
         ratio = self.maskRatio(M)
