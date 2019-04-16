@@ -27,13 +27,16 @@ Example usage:
 
 
 '''
-sys.stdout = open('/tmp2/frank840306/research/BlenderRender/noise.log', w)
+# sys.stdout = open('/tmp2/frank840306/research/BlenderRender/noise.log', w)
 # _print = print
 # file = open("/tmp2/frank840306/research/BlenderRender/noise.log", 'w+')
 # def print(*args):
     # file.write(''.join(args))
     # _print(*args)
 
+def print_file(*args):
+    with open('/tmp2/frank840306/research/BlenderRender/noise.log', 'a') as f:
+        print(*args, file=f)
 
 def get_args():
     parser = argparse.ArgumentParser()
@@ -207,13 +210,12 @@ class BlenderRenderer(object):
         
         self.cfg = cfg
 
-        print('[ CONFIG ] # documents: {}, # 3d model: {}, # HDRI : {}'.format(self.doc_num, self.mdl_num, self.hdri_num))
+        print_file('[ CONFIG ] # documents: {}, # 3d model: {}, # HDRI : {}'.format(self.doc_num, self.mdl_num, self.hdri_num))
         self.initEnv(gpu)
-        print '[ CONFIG ] # documents: {}, # 3d model: {}, # HDRI : {}'.format(self.doc_num, self.mdl_num, self.hdri_num)
-
+        
     def renderAll(self, render_num, ratio_range):
         total_num = self.doc_num * self.mdl_num * len(self.cameras) * render_num
-        print('[ RENDER ] Total render num = {}'.format(total_num))
+        print_file('[ RENDER ] Total render num = {}'.format(total_num))
         
         nonShadowList = []
         shadowList = []
@@ -226,7 +228,7 @@ class BlenderRenderer(object):
         bgNonShadowImg = os.path.join(self.non_shadow_dir, 'bgNonShadow_{}.png'.format(start_time))
         bgShadowImg = os.path.join(self.shadow_dir, 'bgShadow_{}.png'.format(start_time))
 
-        print('[ TIMESTAMP ] {}'.format(start_time))
+        print_file('[ TIMESTAMP ] {}'.format(start_time))
         for doc in self.doc_list:
             
             cam_cnt = 0
@@ -239,7 +241,7 @@ class BlenderRenderer(object):
                     mdl_cnt = 0
                     for mdl in self.mdl_list:
                         img_name = 'D{}M{}C{:02d}N{:05d}.png'.format(os.path.splitext(doc)[0], os.path.splitext(mdl)[0], cam_cnt+1, render_cnt+1)
-                        print(' [ IMAGE ]: {}'.format(img_name))
+                        print_file(' [ IMAGE ]: {}'.format(img_name))
 
                         # add hdri
                         hdri = random.choice(self.hdri_list)
@@ -270,18 +272,18 @@ class BlenderRenderer(object):
                             os.remove(shadowImg)
                             os.remove(nonShadowImg)
                         self.deleteMdl()
-                        print('\t[ Progress ] Total: [ {} / {} ], document: [ {} / {} ], 3D model: [ {} / {} ], camera: [ {} / {} ], render: [ {} / {} ]'.format(
+                        print_file('\t[ Progress ] Total: [ {} / {} ], document: [ {} / {} ], 3D model: [ {} / {} ], camera: [ {} / {} ], render: [ {} / {} ]'.format(
                             total_cnt+1, total_num, doc_cnt+1, self.doc_num, mdl_cnt+1, self.mdl_num, cam_cnt+1, len(self.cameras), render_cnt+1, render_num))
                         mdl_cnt += 1
                         total_cnt += 1
                     render_cnt += 1
                 cam_cnt += 1
             doc_cnt += 1
-            print('[ TIMESTAMP ] {}'.format(datetime.datetime.now().strftime('%H:%M:%S')))
+            print_file('[ TIMESTAMP ] {}'.format(datetime.datetime.now().strftime('%H:%M:%S')))
         
         os.remove(bgNonShadowImg)
         os.remove(bgShadowImg)
-        print('[ RENDER ] Over')
+        print_file('[ RENDER ] Over')
         return nonShadowList, shadowList
 
     def initEnv(self, gpu):
@@ -419,7 +421,7 @@ class BlenderRenderer(object):
         
         self.obj.location = (coord_x, coord_y, self.cfg.OBJECT.LOCATION_Z)
         self.obj.rotation_euler = (self.cfg.OBJECT.ROTATION_X, self.cfg.OBJECT.ROTATION_Y, rotate_z)
-        print('[ RANDOM MDL EFFECT ] coord: ({}, {}), rotate: {}'.format(coord_x, coord_y, rotate_z))
+        print_file('[ RANDOM MDL EFFECT ] coord: ({}, {}), rotate: {}'.format(coord_x, coord_y, rotate_z))
 
 
     def renderSettingHdri(self, hdri):
@@ -453,7 +455,7 @@ class BlenderRenderer(object):
         # random spotlight shadow softness
         spot_softness = random.uniform(self.cfg.LIGHT.SHADOW_SOFT_MIN, self.cfg.LIGHT.SHADOW_SOFT_MAX)
         bpy.data.lamps['Spot'].shadow_soft_size = spot_softness
-        print('[ RANDOM EFFECT ] \nhdri_strength: {}, spot_location: ({}, {}), spot_color: {}, spot_strength:{}, spot_softness: {}'.format(
+        print_file('[ RANDOM EFFECT ] \nhdri_strength: {}, spot_location: ({}, {}), spot_color: {}, spot_strength:{}, spot_softness: {}'.format(
             hdri_strength, spot_location_x, spot_location_y, spot_color, spot_strength, spot_softness
         ))
 
@@ -472,7 +474,7 @@ class BlenderRenderer(object):
         M[np.where(M < 0)] = 0
 
         if np.percentile(M, 99) < 20:
-            print('[ PRUNE ] {} shallow shadow'.format(os.path.basename(N_img)))
+            print_file('[ PRUNE ] {} shallow shadow'.format(os.path.basename(N_img)))
             return False
 
         tmp_M = M.copy()[np.nonzero(M)]
@@ -494,7 +496,7 @@ class BlenderRenderer(object):
         ratio = self.maskRatio(M)
 
         if ratio < ratio_range[0] or ratio > ratio_range[1]:
-            print('[ PRUNE ] {} shadow ratio = {}'.format(os.path.basename(N_img), ratio))
+            print_file('[ PRUNE ] {} shadow ratio = {}'.format(os.path.basename(N_img), ratio))
             # os.remove(N_img)
             # os.remove(S_img)
             return False
@@ -519,7 +521,7 @@ class BlenderRenderer(object):
 
 
     def setPath(self, root_dir):
-        print('[ SETTING PATH ]')
+        print_file('[ SETTING PATH ]')
         self.root_dir = root_dir
         self.mdl_dir = os.path.join(self.root_dir, 'mdl')
         self.doc_dir = os.path.join(self.root_dir, 'doc')
@@ -539,7 +541,7 @@ class BlenderRenderer(object):
                 os.makedirs(d)
 
     def setWorkload(self, workload=None):
-        print('[ SETTING WORKLOAD ]')
+        print_file('[ SETTING WORKLOAD ]')
         if workload and os.path.exists(os.path.join(self.todo_dir, workload)):
             with open(os.path.join(self.todo_dir, workload), 'r') as fp:
                 settings = json.load(fp)
@@ -556,12 +558,12 @@ class BlenderRenderer(object):
             self.denoising = True
             self.dithering = 1
             self.setOutputPath(os.path.join(self.out_dir, 'Blender'))
-        print('\t[ DOC ]: {}'.format(', '.join(self.doc_list)))
-        print('\t[ MDL ]: {}'.format(', '.join(self.mdl_list)))
-        print('\t[ hdri ]: {}'.format(', '.join(self.hdri_list)))
-        print('\t[ DENOISING ]: {}'.format(self.denoising))
-        print('\t[ DITHERING ]: {}'.format(self.dithering))
-        print('\t[ DATASET ]: {}'.format(self.dataset_dir))
+        print_file('\t[ DOC ]: {}'.format(', '.join(self.doc_list)))
+        print_file('\t[ MDL ]: {}'.format(', '.join(self.mdl_list)))
+        print_file('\t[ hdri ]: {}'.format(', '.join(self.hdri_list)))
+        print_file('\t[ DENOISING ]: {}'.format(self.denoising))
+        print_file('\t[ DITHERING ]: {}'.format(self.dithering))
+        print_file('\t[ DATASET ]: {}'.format(self.dataset_dir))
         self.doc_num = len(self.doc_list)
         self.mdl_num = len(self.mdl_list)
         self.hdri_num = len(self.hdri_list)
@@ -572,10 +574,7 @@ if __name__ == '__main__':
     args = get_args()
     cfg = get_cfg()
     
-    
-
     br = BlenderRenderer(args.root_dir, args.workload, args.use_gpu, cfg)
     nonShadowList, shadowList = br.renderAll(render_num=args.render_num, ratio_range=args.ratio_range)
 
     
-    sys.stdout = sys.__stdout__
