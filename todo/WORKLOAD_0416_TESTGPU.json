@@ -1,0 +1,17 @@
+{
+    "date": "2019.04.16",
+    "doc": [
+        "0001.png"
+    ],
+    "hdri": [
+        "001.hdr"
+    ],
+    "mdl": [
+        "001.obj"
+    ],
+    "param": {
+        "dataset": "Blender_test",
+        "denoising": true,
+        "dithering": 1
+    }
+}
