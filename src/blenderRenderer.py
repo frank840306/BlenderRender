@@ -28,7 +28,7 @@ Example usage:
 
 _print = print
 def print(*args):
-    file = open("filename", 'w+')
+    file = open("/tmp2/frank840306/research/BlenderRender/noise.log", 'w+')
     file.write(''.join(args))
     _print(*args)
 
@@ -236,12 +236,14 @@ class BlenderRenderer(object):
                     
                     mdl_cnt = 0
                     for mdl in self.mdl_list:
+                        img_name = 'D{}M{}C{:02d}N{:05d}.png'.format(os.path.splitext(doc)[0], os.path.splitext(mdl)[0], cam_cnt+1, render_cnt+1)
+                        print(' [ IMAGE ]: {}'.format(img_name))
+
                         # add hdri
                         hdri = random.choice(self.hdri_list)
                         self.renderSettingHdri(hdri)
-
+                        
                         self.addRandomEffect()
-                        img_name = 'D{}M{}C{:02d}N{:05d}.png'.format(os.path.splitext(doc)[0], os.path.splitext(mdl)[0], cam_cnt+1, render_cnt+1)
                         nonShadowImg = os.path.join(self.non_shadow_dir, img_name)
                         shadowImg = os.path.join(self.shadow_dir, img_name)
                         maskImg = os.path.join(self.mask_dir, img_name)
