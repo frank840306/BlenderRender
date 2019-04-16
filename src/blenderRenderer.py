@@ -11,6 +11,8 @@ import argparse
 import numpy as np
 from easydict import EasyDict as edict
 from PIL import Image
+
+
 ''' the script to automatively render batch of shadow and non-shadow paired images
 
 Example usage:
@@ -25,12 +27,12 @@ Example usage:
 
 
 '''
-
-_print = print
-file = open("/tmp2/frank840306/research/BlenderRender/noise.log", 'w+')
-def print(*args):
-    file.write(''.join(args))
-    _print(*args)
+sys.stdout = open('/tmp2/frank840306/research/BlenderRender/noise.log', w)
+# _print = print
+# file = open("/tmp2/frank840306/research/BlenderRender/noise.log", 'w+')
+# def print(*args):
+    # file.write(''.join(args))
+    # _print(*args)
 
 
 def get_args():
@@ -207,7 +209,7 @@ class BlenderRenderer(object):
 
         print('[ CONFIG ] # documents: {}, # 3d model: {}, # HDRI : {}'.format(self.doc_num, self.mdl_num, self.hdri_num))
         self.initEnv(gpu)
-        
+        print '[ CONFIG ] # documents: {}, # 3d model: {}, # HDRI : {}'.format(self.doc_num, self.mdl_num, self.hdri_num)
 
     def renderAll(self, render_num, ratio_range):
         total_num = self.doc_num * self.mdl_num * len(self.cameras) * render_num
@@ -576,3 +578,4 @@ if __name__ == '__main__':
     nonShadowList, shadowList = br.renderAll(render_num=args.render_num, ratio_range=args.ratio_range)
 
     
+    sys.stdout = sys.__stdout__
