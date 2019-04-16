@@ -27,8 +27,8 @@ Example usage:
 '''
 
 _print = print
+file = open("/tmp2/frank840306/research/BlenderRender/noise.log", 'w+')
 def print(*args):
-    file = open("/tmp2/frank840306/research/BlenderRender/noise.log", 'w+')
     file.write(''.join(args))
     _print(*args)
 
