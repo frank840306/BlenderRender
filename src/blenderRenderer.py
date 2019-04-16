@@ -26,6 +26,12 @@ Example usage:
 
 '''
 
+_print = print
+def print(*args):
+    file = open("filename", 'w+')
+    file.write(''.join(args))
+    _print(*args)
+
 
 def get_args():
     parser = argparse.ArgumentParser()
@@ -562,11 +568,7 @@ if __name__ == '__main__':
     args = get_args()
     cfg = get_cfg()
     
-    _print = print
-    def print(*args):
-        file = open("filename", 'w+')
-        file.write(''.join(args))
-        _print(*args)
+    
 
     br = BlenderRenderer(args.root_dir, args.workload, args.use_gpu, cfg)
     nonShadowList, shadowList = br.renderAll(render_num=args.render_num, ratio_range=args.ratio_range)
