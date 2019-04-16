@@ -409,7 +409,9 @@ class BlenderRenderer(object):
         
         self.obj.location = (coord_x, coord_y, self.cfg.OBJECT.LOCATION_Z)
         self.obj.rotation_euler = (self.cfg.OBJECT.ROTATION_X, self.cfg.OBJECT.ROTATION_Y, rotate_z)
-        
+        print('[ RANDOM MDL EFFECT ] coord: ({}, {}), rotate: {}'.format(coord_x, coord_y, rotate_z))
+
+
     def renderSettingHdri(self, hdri):
         # set hdri image
         self.env.image = bpy.data.images.load(os.path.join(self.hdri_dir, hdri))
@@ -441,6 +443,10 @@ class BlenderRenderer(object):
         # random spotlight shadow softness
         spot_softness = random.uniform(self.cfg.LIGHT.SHADOW_SOFT_MIN, self.cfg.LIGHT.SHADOW_SOFT_MAX)
         bpy.data.lamps['Spot'].shadow_soft_size = spot_softness
+        print('[ RANDOM EFFECT ] \nhdri_strength: {}, spot_location: ({}, {}), spot_color: {}, spot_strength:{}, spot_softness: {}'.format(
+            hdri_strength, spot_location_x, spot_location_y, spot_color, spot_strength, spot_softness
+        ))
+
 
     def deleteMdl(self):
         bpy.ops.object.select_all(action='DESELECT')
