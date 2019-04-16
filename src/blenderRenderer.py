@@ -561,7 +561,11 @@ class BlenderRenderer(object):
 if __name__ == '__main__':
     args = get_args()
     cfg = get_cfg()
+    f = open('/tmp2/frank840306/research/BlenderRender/output.log')
+    sys.stdout = f
     br = BlenderRenderer(args.root_dir, args.workload, args.use_gpu, cfg)
     nonShadowList, shadowList = br.renderAll(render_num=args.render_num, ratio_range=args.ratio_range)
 
+    sys.stdout = sys.__stdout__
+    file.close()
 
