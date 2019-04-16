@@ -321,7 +321,27 @@ class BlenderRenderer(object):
         bpy.data.scenes['Scene'].render.dither_intensity = self.dithering
         bpy.data.scenes['Scene'].cycles.samples = self.cfg.CAMERA.SAMPLE
         
-        bpy.data.scenes['Scene'].cycles.device = 'GPU' if gpu else 'CPU'
+
+        # set GPU or CPU
+        scene = bpy.context.scene
+        scene.cycles.device = 'GPU'
+
+        prefs = bpy.context.user_preferences
+        cprefs = prefs.addons['cycles'].preferences
+
+        # Attempt to set GPU device types if available
+        for compute_device_type in ('CUDA', 'OPENCL', 'NONE'):
+            try:
+                cprefs.compute_device_type = compute_device_type
+                break
+            except TypeError:
+                pass
+
+        # Enable all CPU and GPU devices
+        for device in cprefs.devices:
+            device.use = True
+
+        # bpy.data.scenes['Scene'].cycles.device = 'GPU' if gpu else 'CPU'
         
         bpy.data.scenes['Scene'].render.layers[0].cycles.use_denoising = self.denoising
 
