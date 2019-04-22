@@ -64,7 +64,7 @@ def get_cfg():
     __C.CAMERA.RESOLUTION_Y = 1600
     __C.CAMERA.PERCENTAGE = 100 # 100
 
-    __C.CAMERA.SAMPLE = 512
+    __C.CAMERA.SAMPLE = 1000    # 512
 
     # the camera 1
     __C.CAMERA1 = edict()
