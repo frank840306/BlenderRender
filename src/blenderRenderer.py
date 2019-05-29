@@ -35,7 +35,7 @@ Example usage:
     # _print(*args)
 
 def print_file(*args):
-    with open('/tmp2/frank840306/research/BlenderRender/out/output.log', 'a') as f:
+    with open('/tmp2/frank840306/research/BlenderRender/out/output_large.log', 'a') as f:
     # with open('/media/yslin/SSD_DATA/research/BlenderRender/out/output.log', 'a') as f:
         print(*args, file=f)
 
@@ -60,11 +60,11 @@ def get_cfg():
 
     # the camera
     __C.CAMERA = edict()
-    __C.CAMERA.RESOLUTION_X = 450   # 1200
-    __C.CAMERA.RESOLUTION_Y = 600   # 1600
+    __C.CAMERA.RESOLUTION_X = 1200   # 450
+    __C.CAMERA.RESOLUTION_Y = 1600   # 600
     __C.CAMERA.PERCENTAGE = 100 # 100
 
-    __C.CAMERA.SAMPLE = 512    # 1000
+    __C.CAMERA.SAMPLE = 1000    # 512
 
     # the camera 1
     __C.CAMERA1 = edict()
