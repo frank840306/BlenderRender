@@ -60,11 +60,11 @@ def get_cfg():
 
     # the camera
     __C.CAMERA = edict()
-    __C.CAMERA.RESOLUTION_X = 1200   # 450
-    __C.CAMERA.RESOLUTION_Y = 1600   # 600
+    __C.CAMERA.RESOLUTION_X = 450   # 1200
+    __C.CAMERA.RESOLUTION_Y = 600   # 1600
     __C.CAMERA.PERCENTAGE = 100 # 100
 
-    __C.CAMERA.SAMPLE = 1000    # 512
+    __C.CAMERA.SAMPLE = 512    # 1000
 
     # the camera 1
     __C.CAMERA1 = edict()
@@ -216,8 +216,8 @@ class BlenderRenderer(object):
         self.initEnv(gpu)
         
     def renderAll(self, render_num, ratio_range):
-        # total_num = self.doc_num * self.mdl_num * len(self.cameras) * render_num
-        total_num = self.doc_num * len(self.cameras) * render_num
+        total_num = self.doc_num * self.mdl_num * len(self.cameras) * render_num
+        # total_num = self.doc_num * len(self.cameras) * render_num
         
         print_file('[ RENDER ] Total render num = {}'.format(total_num))
         
@@ -243,8 +243,8 @@ class BlenderRenderer(object):
                     
                     
                     mdl_cnt = 0
-                    # for mdl in self.mdl_list:
-                    for mdl in [random.choice(self.mdl_list)]:
+                    for mdl in self.mdl_list:
+                    # for mdl in [random.choice(self.mdl_list)]:
                         img_name = 'D{}M{}C{:02d}N{:05d}.png'.format(os.path.splitext(doc)[0], os.path.splitext(mdl)[0], cam_cnt+1, render_cnt+2)
                         print_file(' [ IMAGE ]: {}'.format(img_name))
 
