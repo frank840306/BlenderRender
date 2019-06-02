@@ -4,7 +4,7 @@ import datetime
 
 '''
 Example usages:
-    python src/todoProducer.py -d 8 10 -m 1 7 -e 1 10 -f todo/WORKLOAD_0305_ASUS_PRO.json --dataset Blender40_residual
+    python src/todoProducer.py -d 8 10 -m 1 7 -e 1 6 -f todo/WORKLOAD_0305_ASUS_PRO.json --dataset Blender40_residual
     
 '''
 

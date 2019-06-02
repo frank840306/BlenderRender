@@ -11,8 +11,13 @@ the python rendering program for blender 2.79b
 3. Blender875
     * training: [1 - 400 + 496 - 970]
     * testing: [401 - 495]
-
-
+4. Blender970_high_plus
+    * training:
+        doc: 1 - 400 + 501 - 970
+        mdl: 1 - 3 + 8 - 10
+    * testing:
+        doc: 401 - 500
+        mdl: 4 - 7 + 11 - 13
 ## WORKLOAD:
 
 ### 2019.03.09
