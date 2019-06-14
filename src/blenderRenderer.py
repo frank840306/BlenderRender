@@ -184,7 +184,7 @@ def get_cfg():
     __C.LIGHT.ROTATION_Y = 0 
     __C.LIGHT.ROTATION_Z = 0
     __C.LIGHT.COLOR = ['#FFC58F', '#FFF1E0', '#FFFFFF', '#C9E2FF']    # normal light
-    __C.LIGHT.COLOR += ['#FF9329', '#409CFF']    # extreme light
+    # __C.LIGHT.COLOR += ['#FF9329', '#409CFF']    # extreme light
 
     return cfg
 
