@@ -35,8 +35,8 @@ Example usage:
     # _print(*args)
 
 def print_file(*args):
-    #with open('/tmp2/frank840306/research/BlenderRender/out/output_large.log', 'a') as f:
-    with open('/media/yslin/SSD_DATA/research/BlenderRender/out/output.log', 'a') as f:
+    with open('/tmp2/frank840306/research/BlenderRender/out/output_large.log', 'a') as f:
+    # with open('/media/yslin/SSD_DATA/research/BlenderRender/out/output.log', 'a') as f:
         print(*args, file=f)
 
 def get_args():
