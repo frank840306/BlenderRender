@@ -1,0 +1,22 @@
+{
+    "date": "2019.06.02",
+    "doc": [
+        "0001.png",
+        "0002.png",
+        "0003.png"
+        
+    ],
+    "hdri": [
+        "001.hdr"
+    ],
+    "mdl": [
+        "001.obj",
+        "002.obj",
+        "009.obj"
+    ],
+    "param": {
+        "dataset": "Testing",
+        "denoising": true,
+        "dithering": 1
+    }
+}

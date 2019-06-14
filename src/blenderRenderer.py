@@ -35,8 +35,8 @@ Example usage:
     # _print(*args)
 
 def print_file(*args):
-    with open('/tmp2/frank840306/research/BlenderRender/out/output_large.log', 'a') as f:
-    # with open('/media/yslin/SSD_DATA/research/BlenderRender/out/output.log', 'a') as f:
+    #with open('/tmp2/frank840306/research/BlenderRender/out/output_large.log', 'a') as f:
+    with open('/media/yslin/SSD_DATA/research/BlenderRender/out/output.log', 'a') as f:
         print(*args, file=f)
 
 def get_args():
@@ -60,11 +60,11 @@ def get_cfg():
 
     # the camera
     __C.CAMERA = edict()
-    __C.CAMERA.RESOLUTION_X = 1200   # 450, 1200
-    __C.CAMERA.RESOLUTION_Y = 1600   # 600, 1600
+    __C.CAMERA.RESOLUTION_X = 450   # 450, 1200
+    __C.CAMERA.RESOLUTION_Y = 600   # 600, 1600
     __C.CAMERA.PERCENTAGE = 100 # 100
 
-    __C.CAMERA.SAMPLE = 1000    # 512, 1000
+    __C.CAMERA.SAMPLE = 512    # 512, 1000
 
     # the camera 1
     __C.CAMERA1 = edict()
@@ -165,17 +165,17 @@ def get_cfg():
     # the light source
     __C.LIGHT = edict()
     __C.LIGHT.TYPE = 'SPOT'
-    __C.LIGHT.ANGLE = math.pi * 45 / 180
+    __C.LIGHT.ANGLE = math.pi * 75 / 180
     __C.LIGHT.SHADOW_SOFT_MIN = 0.1 
     __C.LIGHT.SHADOW_SOFT_MAX = 0.5
     
-    __C.LIGHT.STRENGTH_MIN = 3000 # 3000 ~ 20000
-    __C.LIGHT.STRENGTH_MAX = 10000 # 3000 ~ 20000
+    __C.LIGHT.STRENGTH_MIN = 4000 # 3000 ~ 20000
+    __C.LIGHT.STRENGTH_MAX = 8000 # 3000 ~ 20000
 
 
-    __C.LIGHT.LOCATION_X = 0
-    __C.LIGHT.LOCATION_Y = 0
-    __C.LIGHT.LOCATION_Z = 22
+    __C.LIGHT.LOCATION_X = [0, 2, 2, -2, -2]
+    __C.LIGHT.LOCATION_Y = [0, 2, -2, 2, -2]
+    __C.LIGHT.LOCATION_Z = [22, 22, 22, 22, 22]
 
     __C.LIGHT.LOCATION_MIN = -0.5
     __C.LIGHT.LOCATION_MAX = 0.5
@@ -245,7 +245,7 @@ class BlenderRenderer(object):
                     mdl_cnt = 0
                     # for mdl in self.mdl_list:
                     for mdl in [random.choice(self.mdl_list)]:
-                        img_name = 'D{}M{}C{:02d}N{:05d}.png'.format(os.path.splitext(doc)[0], os.path.splitext(mdl)[0], cam_cnt+1, render_cnt+1)
+                        img_name = 'D{}M{}C{:02d}N{:05d}.png'.format(os.path.splitext(doc)[0], os.path.splitext(mdl)[0], cam_cnt+1, render_cnt+3)
                         print_file(' [ IMAGE ]: {}'.format(img_name))
 
                         # add hdri
@@ -399,14 +399,24 @@ class BlenderRenderer(object):
         self.bg = world.node_tree.nodes['Background']
         self.env = world.node_tree.nodes.new(type='ShaderNodeTexEnvironment')
         world.node_tree.links.new(self.env.outputs['Color'], self.bg.inputs['Color'])
-        # create light source
         
+        # create centre light source
         bpy.ops.object.lamp_add(
             type=self.cfg.LIGHT.TYPE,
-            location=(self.cfg.LIGHT.LOCATION_X, self.cfg.LIGHT.LOCATION_Y, self.cfg.LIGHT.LOCATION_Z)
+            location=(self.cfg.LIGHT.LOCATION_X[0], self.cfg.LIGHT.LOCATION_Y[0], self.cfg.LIGHT.LOCATION_Z[0])
         )
         bpy.context.object.rotation_euler = (self.cfg.LIGHT.ROTATION_X, self.cfg.LIGHT.ROTATION_Y, self.cfg.LIGHT.ROTATION_Z)
         bpy.data.lamps['Spot'].spot_size = self.cfg.LIGHT.ANGLE
+        
+        # create grid light source
+        for i in range(1, 5):
+            bpy.ops.object.lamp_add(
+                type=self.cfg.LIGHT.TYPE,
+                location=(self.cfg.LIGHT.LOCATION_X[i], self.cfg.LIGHT.LOCATION_Y[i], self.cfg.LIGHT.LOCATION_Z[i])
+            )
+            bpy.context.object.rotation_euler = (self.cfg.LIGHT.ROTATION_X, self.cfg.LIGHT.ROTATION_Y, self.cfg.LIGHT.ROTATION_Z)
+            bpy.data.lamps['Spot.00{}'.format(i)].spot_size = self.cfg.LIGHT.ANGLE
+        
         # bpy.data.lamps['Spot'].shadow_soft_size = self.cfg.LIGHT.SHADOW_SOFT
         # light = bpy.data.objects['Spot']
         # light
@@ -446,20 +456,35 @@ class BlenderRenderer(object):
         # random spotlight location
         spot_location_x = random.uniform(self.cfg.LIGHT.LOCATION_MIN, self.cfg.LIGHT.LOCATION_MAX)
         spot_location_y = random.uniform(self.cfg.LIGHT.LOCATION_MIN, self.cfg.LIGHT.LOCATION_MAX)
-        bpy.data.objects['Spot'].location[0] = spot_location_x
-        bpy.data.objects['Spot'].location[1] = spot_location_y
-        
+        bpy.data.objects['Spot'].location[0] += spot_location_x
+        bpy.data.objects['Spot'].location[1] += spot_location_y
+        for i in range(1, 5):
+            bpy.data.objects['Spot.00{}'.format(i)].location[0] += spot_location_x
+            bpy.data.objects['Spot.00{}'.format(i)].location[1] += spot_location_y
+            
+
+
         # random spotlight strength
         spot_color = self.cfg.LIGHT.COLOR[random.choice(range(len(self.cfg.LIGHT.COLOR)))]
+        # centre light
         spot_strength = random.uniform(self.cfg.LIGHT.STRENGTH_MIN, self.cfg.LIGHT.STRENGTH_MAX)
         bpy.data.lamps['Spot'].node_tree.nodes['Emission'].inputs[0].default_value = hexToRGBA(spot_color)
         bpy.data.lamps['Spot'].node_tree.nodes['Emission'].inputs[1].default_value = spot_strength
+        
+        for i in range(1, 5):
+            spot_strength = random.uniform(self.cfg.LIGHT.STRENGTH_MIN, self.cfg.LIGHT.STRENGTH_MAX) if random.choice([0, 1]) else 0
+            bpy.data.lamps['Spot.00{}'.format(i)].node_tree.nodes['Emission'].inputs[0].default_value = hexToRGBA(spot_color)
+            bpy.data.lamps['Spot.00{}'.format(i)].node_tree.nodes['Emission'].inputs[1].default_value = spot_strength
+            
         # bpy.data.lamps['Spot'].node_tree.nodes['Emission'].inputs[1].default_value = self.cfg.LIGHT.STRENGTH_MIN
         
 
         # random spotlight shadow softness
         spot_softness = random.uniform(self.cfg.LIGHT.SHADOW_SOFT_MIN, self.cfg.LIGHT.SHADOW_SOFT_MAX)
         bpy.data.lamps['Spot'].shadow_soft_size = spot_softness
+        for i in range(1, 5):
+            bpy.data.lamps['Spot.00{}'.format(i)].shadow_soft_size = spot_softness
+            
         print_file('[ RANDOM EFFECT ] \nhdri_strength: {}, spot_location: ({}, {}), spot_color: {}, spot_strength:{}, spot_softness: {}'.format(
             hdri_strength, spot_location_x, spot_location_y, spot_color, spot_strength, spot_softness
         ))
@@ -488,7 +513,7 @@ class BlenderRenderer(object):
         # print(tmp_M.shape)
         
 
-        max_val = np.percentile(tmp_M, 80)
+        max_val = np.percentile(tmp_M, 98)  # 80
         min_val = np.percentile(tmp_M, 5)
 
         M[np.where(M > max_val)] = max_val
