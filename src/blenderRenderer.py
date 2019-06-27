@@ -35,8 +35,8 @@ Example usage:
     # _print(*args)
 
 def print_file(*args):
-    with open('/tmp2/frank840306/research/BlenderRender/out/output_large.log', 'a') as f:
-    # with open('/media/yslin/SSD_DATA/research/BlenderRender/out/output.log', 'a') as f:
+    # with open('/tmp2/frank840306/research/BlenderRender/out/output_large.log', 'a') as f:
+    with open('/media/yslin/SSD_DATA/research/BlenderRender/out/output.log', 'a') as f:
         print(*args, file=f)
 
 def get_args():
@@ -60,11 +60,11 @@ def get_cfg():
 
     # the camera
     __C.CAMERA = edict()
-    __C.CAMERA.RESOLUTION_X = 450   # 450, 1200
-    __C.CAMERA.RESOLUTION_Y = 600   # 600, 1600
+    __C.CAMERA.RESOLUTION_X = 1200   # 450, 1200
+    __C.CAMERA.RESOLUTION_Y = 1600   # 600, 1600
     __C.CAMERA.PERCENTAGE = 100 # 100
 
-    __C.CAMERA.SAMPLE = 512    # 512, 1000
+    __C.CAMERA.SAMPLE = 1000    # 512, 1000
 
     # the camera 1
     __C.CAMERA1 = edict()
@@ -170,7 +170,7 @@ def get_cfg():
     __C.LIGHT.SHADOW_SOFT_MAX = 0.5
     
     __C.LIGHT.STRENGTH_MIN = 4000 # 3000 ~ 20000
-    __C.LIGHT.STRENGTH_MAX = 8000 # 3000 ~ 20000
+    __C.LIGHT.STRENGTH_MAX = 10000 # 3000 ~ 20000
 
 
     __C.LIGHT.LOCATION_X = [0, 2, 2, -2, -2]
@@ -184,6 +184,7 @@ def get_cfg():
     __C.LIGHT.ROTATION_Y = 0 
     __C.LIGHT.ROTATION_Z = 0
     __C.LIGHT.COLOR = ['#FFC58F', '#FFF1E0', '#FFFFFF', '#C9E2FF']    # normal light
+    __C.LIGHT.NUM = 1
     # __C.LIGHT.COLOR += ['#FF9329', '#409CFF']    # extreme light
 
     return cfg
@@ -245,7 +246,7 @@ class BlenderRenderer(object):
                     mdl_cnt = 0
                     # for mdl in self.mdl_list:
                     for mdl in [random.choice(self.mdl_list)]:
-                        img_name = 'D{}M{}C{:02d}N{:05d}.png'.format(os.path.splitext(doc)[0], os.path.splitext(mdl)[0], cam_cnt+1, render_cnt+3)
+                        img_name = 'D{}M{}C{:02d}N{:05d}.png'.format(os.path.splitext(doc)[0], os.path.splitext(mdl)[0], cam_cnt+1, render_cnt+1)
                         print_file(' [ IMAGE ]: {}'.format(img_name))
 
                         # add hdri
@@ -409,7 +410,7 @@ class BlenderRenderer(object):
         bpy.data.lamps['Spot'].spot_size = self.cfg.LIGHT.ANGLE
         
         # create grid light source
-        for i in range(1, 5):
+        for i in range(1, self.cfg.LIGHT.NUM):
             bpy.ops.object.lamp_add(
                 type=self.cfg.LIGHT.TYPE,
                 location=(self.cfg.LIGHT.LOCATION_X[i], self.cfg.LIGHT.LOCATION_Y[i], self.cfg.LIGHT.LOCATION_Z[i])
@@ -458,7 +459,7 @@ class BlenderRenderer(object):
         spot_location_y = random.uniform(self.cfg.LIGHT.LOCATION_MIN, self.cfg.LIGHT.LOCATION_MAX)
         bpy.data.objects['Spot'].location[0] += spot_location_x
         bpy.data.objects['Spot'].location[1] += spot_location_y
-        for i in range(1, 5):
+        for i in range(1, self.cfg.LIGHT.NUM):
             bpy.data.objects['Spot.00{}'.format(i)].location[0] += spot_location_x
             bpy.data.objects['Spot.00{}'.format(i)].location[1] += spot_location_y
             
@@ -471,7 +472,7 @@ class BlenderRenderer(object):
         bpy.data.lamps['Spot'].node_tree.nodes['Emission'].inputs[0].default_value = hexToRGBA(spot_color)
         bpy.data.lamps['Spot'].node_tree.nodes['Emission'].inputs[1].default_value = spot_strength
         
-        for i in range(1, 5):
+        for i in range(1, self.cfg.LIGHT.NUM):
             spot_strength = random.uniform(self.cfg.LIGHT.STRENGTH_MIN, self.cfg.LIGHT.STRENGTH_MAX) if random.choice([0, 1]) else 0
             bpy.data.lamps['Spot.00{}'.format(i)].node_tree.nodes['Emission'].inputs[0].default_value = hexToRGBA(spot_color)
             bpy.data.lamps['Spot.00{}'.format(i)].node_tree.nodes['Emission'].inputs[1].default_value = spot_strength
@@ -482,7 +483,7 @@ class BlenderRenderer(object):
         # random spotlight shadow softness
         spot_softness = random.uniform(self.cfg.LIGHT.SHADOW_SOFT_MIN, self.cfg.LIGHT.SHADOW_SOFT_MAX)
         bpy.data.lamps['Spot'].shadow_soft_size = spot_softness
-        for i in range(1, 5):
+        for i in range(1, self.cfg.LIGHT.NUM):
             bpy.data.lamps['Spot.00{}'.format(i)].shadow_soft_size = spot_softness
             
         print_file('[ RANDOM EFFECT ] \nhdri_strength: {}, spot_location: ({}, {}), spot_color: {}, spot_strength:{}, spot_softness: {}'.format(

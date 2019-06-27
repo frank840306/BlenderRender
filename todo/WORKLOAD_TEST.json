@@ -1,21 +1,33 @@
 {
-    "date": "2019.06.02",
+    "date": "2019.06.27",
     "doc": [
-        "0001.png",
-        "0002.png",
-        "0003.png"
-        
+        "1000.png"
     ],
     "hdri": [
-        "001.hdr"
+        "001.hdr",
+        "002.hdr",
+        "003.hdr",
+        "004.hdr",
+        "005.hdr",
+        "006.hdr"
     ],
     "mdl": [
         "001.obj",
         "002.obj",
-        "009.obj"
+        "003.obj",
+        "004.obj",
+        "005.obj",
+        "006.obj",
+        "007.obj",
+        "008.obj",
+        "009.obj",
+        "010.obj",
+        "011.obj",
+        "012.obj",
+        "013.obj"
     ],
     "param": {
-        "dataset": "Testing",
+        "dataset": "Blender_illustrated",
         "denoising": true,
         "dithering": 1
     }
